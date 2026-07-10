@@ -1,0 +1,51 @@
+[project]
+name = "seven-eleven-pdf"
+version = "0.1.0"
+description = "Prepare PDFs for 7-Eleven printing by converting, compressing, and splitting under a size limit."
+readme = "README.md"
+authors = [
+    { email = "wangzhao2013tsinghua@gmail.com" }
+]
+requires-python = ">=3.11"
+license = "MIT"
+keywords = ["pdf", "printing", "ghostscript", "seven-eleven"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Printing",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "pypdf>=6.0.0",
+]
+
+[project.scripts]
+seven-eleven-pdf = "seven_eleven_pdf.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.9.28,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.0.0",
+    "pytest>=8.0.0",
+    "ruff>=0.8.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
