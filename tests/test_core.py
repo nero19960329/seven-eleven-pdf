@@ -49,3 +49,19 @@ def test_input_suffix_validation(tmp_path: Path) -> None:
 
     with pytest.raises(PdfPrepError, match=r"\.pdf"):
         prepare_for_print(text_file)
+
+
+def test_raster_option_validation(tmp_path: Path) -> None:
+    from seven_eleven_pdf.core import prepare_for_print
+
+    pdf_file = tmp_path / "sample.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4\n")
+
+    with pytest.raises(PdfPrepError, match="--strategy"):
+        prepare_for_print(pdf_file, strategy="unknown")
+
+    with pytest.raises(PdfPrepError, match="--raster-dpi"):
+        prepare_for_print(pdf_file, strategy="raster", raster_dpi=0)
+
+    with pytest.raises(PdfPrepError, match="--jpeg-quality"):
+        prepare_for_print(pdf_file, strategy="raster", jpeg_quality=0)

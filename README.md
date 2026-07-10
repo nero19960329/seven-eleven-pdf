@@ -1,14 +1,14 @@
 # seven-eleven-pdf
 
 `seven-eleven-pdf` prepares a PDF for convenience-store printing systems that reject
-large uploads. It converts the document to grayscale by default, compresses it with
-Ghostscript, and splits it into PDF parts smaller than a configurable size limit.
+large uploads. It converts the document to grayscale by default, compresses or
+rasterizes it, and splits it into PDF parts smaller than a configurable size limit.
 
 The default limit is 10 MB per output file.
 
 ## Strategy
 
-The tool uses one conservative default strategy:
+The tool uses one conservative default strategy, `compress`:
 
 1. Convert and compress the full PDF with Ghostscript.
 2. Use grayscale output by default, because printed handouts usually do not need
@@ -24,23 +24,29 @@ This favors predictable print quality and small output files over aggressive
 rasterization. Rasterizing every page can shrink difficult files, but it often
 damages text sharpness and makes searchable PDFs worse.
 
+For files that need to be smaller and can tolerate blur, use `--strategy raster`.
+This renders every page to a grayscale JPEG and rebuilds the PDF before splitting
+it. It is useful for A4 print handouts where upload size matters more than text
+searchability.
+
 ## Requirements
 
 - Python 3.11 or newer
 - [uv](https://docs.astral.sh/uv/)
 - Ghostscript available as `gs`
+- Poppler available as `pdftoppm` when using `--strategy raster`
 
 On macOS:
 
 ```sh
-brew install ghostscript uv
+brew install ghostscript poppler uv
 ```
 
 On Ubuntu:
 
 ```sh
 sudo apt-get update
-sudo apt-get install ghostscript
+sudo apt-get install ghostscript poppler-utils
 ```
 
 ## Installation
@@ -88,6 +94,18 @@ Increase image downsampling resolution:
 
 ```sh
 seven-eleven-pdf document.pdf --dpi 200
+```
+
+Create a blurrier A4-oriented version:
+
+```sh
+seven-eleven-pdf document.pdf --strategy raster --raster-dpi 72 --jpeg-quality 35
+```
+
+Make the raster output smaller and blurrier:
+
+```sh
+seven-eleven-pdf document.pdf --strategy raster --raster-dpi 60 --jpeg-quality 28
 ```
 
 ## Development

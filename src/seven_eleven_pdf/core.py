@@ -8,8 +8,11 @@ from pathlib import Path
 
 from seven_eleven_pdf.pdf_tools import (
     GhostscriptMissingError,
+    PopplerMissingError,
     compress_pdf,
     count_pages,
+    rasterize_pdf,
+    write_images_as_pdf,
     write_page_range,
 )
 
@@ -77,6 +80,9 @@ def prepare_for_print(
     max_size_mb: float = 10.0,
     dpi: int = 150,
     grayscale: bool = True,
+    strategy: str = "compress",
+    raster_dpi: int = 72,
+    jpeg_quality: int = 35,
 ) -> PrepResult:
     input_path = input_path.expanduser().resolve()
     if not input_path.is_file():
@@ -85,6 +91,12 @@ def prepare_for_print(
         raise PdfPrepError("input file must be a .pdf")
     if dpi <= 0:
         raise PdfPrepError("--dpi must be greater than 0")
+    if strategy not in {"compress", "raster"}:
+        raise PdfPrepError("--strategy must be either 'compress' or 'raster'")
+    if raster_dpi <= 0:
+        raise PdfPrepError("--raster-dpi must be greater than 0")
+    if not 1 <= jpeg_quality <= 95:
+        raise PdfPrepError("--jpeg-quality must be between 1 and 95")
 
     max_bytes = max_bytes_from_mb(max_size_mb)
     output_dir = (
@@ -101,11 +113,19 @@ def prepare_for_print(
             max_bytes=max_bytes,
             dpi=dpi,
             grayscale=grayscale,
+            strategy=strategy,
+            raster_dpi=raster_dpi,
+            jpeg_quality=jpeg_quality,
         )
     except GhostscriptMissingError as exc:
         raise PdfPrepError(
             "Ghostscript is required. Install it with `brew install ghostscript` "
             "on macOS, then run the command again."
+        ) from exc
+    except PopplerMissingError as exc:
+        raise PdfPrepError(
+            "Poppler is required for --strategy raster. Install it with "
+            "`brew install poppler` on macOS, then run the command again."
         ) from exc
 
 
@@ -115,9 +135,23 @@ def _prepare_with_temp_files(
     max_bytes: int,
     dpi: int,
     grayscale: bool,
+    strategy: str,
+    raster_dpi: int,
+    jpeg_quality: int,
 ) -> PrepResult:
     with tempfile.TemporaryDirectory(prefix="seven-eleven-pdf-") as temp_name:
         temp_dir = Path(temp_name)
+        if strategy == "raster":
+            return _prepare_raster(
+                input_path=input_path,
+                output_dir=output_dir,
+                max_bytes=max_bytes,
+                temp_dir=temp_dir,
+                grayscale=grayscale,
+                raster_dpi=raster_dpi,
+                jpeg_quality=jpeg_quality,
+            )
+
         compressed = temp_dir / "compressed.pdf"
         compress_pdf(input_path, compressed, dpi=dpi, grayscale=grayscale)
 
@@ -152,5 +186,69 @@ def _prepare_with_temp_files(
         output_dir=output_dir,
         files=tuple(files),
         strategy="grayscale-compress-and-split" if grayscale else "color-compress-and-split",
+        max_bytes=max_bytes,
+    )
+
+
+def _prepare_raster(
+    input_path: Path,
+    output_dir: Path,
+    max_bytes: int,
+    temp_dir: Path,
+    grayscale: bool,
+    raster_dpi: int,
+    jpeg_quality: int,
+) -> PrepResult:
+    pages = rasterize_pdf(
+        input_path=input_path,
+        output_dir=temp_dir / "pages",
+        dpi=raster_dpi,
+        grayscale=grayscale,
+        jpeg_quality=jpeg_quality,
+    )
+
+    def render_range_size(start: int, end: int) -> int:
+        candidate = temp_dir / f"raster-candidate-{start + 1}-{end + 1}.pdf"
+        write_images_as_pdf(
+            pages[start : end + 1],
+            candidate,
+            dpi=raster_dpi,
+            jpeg_quality=jpeg_quality,
+            grayscale=grayscale,
+        )
+        return candidate.stat().st_size
+
+    ranges = page_ranges_for_limit(len(pages), max_bytes, render_range_size)
+    if len(ranges) == 1:
+        output = output_dir / f"{input_path.stem}_raster.pdf"
+        write_images_as_pdf(
+            pages,
+            output,
+            dpi=raster_dpi,
+            jpeg_quality=jpeg_quality,
+            grayscale=grayscale,
+        )
+        files = (output,)
+    else:
+        width = len(str(len(ranges)))
+        rendered: list[Path] = []
+        for index, (start, end) in enumerate(ranges, start=1):
+            output = output_dir / f"{input_path.stem}_raster_part-{index:0{width}d}.pdf"
+            write_images_as_pdf(
+                pages[start : end + 1],
+                output,
+                dpi=raster_dpi,
+                jpeg_quality=jpeg_quality,
+                grayscale=grayscale,
+            )
+            rendered.append(output)
+        files = tuple(rendered)
+
+    color = "grayscale" if grayscale else "color"
+    return PrepResult(
+        input_path=input_path,
+        output_dir=output_dir,
+        files=files,
+        strategy=f"{color}-raster-{raster_dpi}dpi-q{jpeg_quality}",
         max_bytes=max_bytes,
     )

@@ -43,6 +43,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Keep color output instead of converting to grayscale",
     )
     parser.add_argument(
+        "--strategy",
+        choices=["compress", "raster"],
+        default="compress",
+        help=(
+            "PDF preparation strategy. Use raster for smaller, blurrier A4 print "
+            "files (default: compress)."
+        ),
+    )
+    parser.add_argument(
+        "--raster-dpi",
+        type=int,
+        default=72,
+        help="Raster rendering resolution used with --strategy raster (default: 72)",
+    )
+    parser.add_argument(
+        "--jpeg-quality",
+        type=int,
+        default=35,
+        help="JPEG quality used with --strategy raster, 1-95 (default: 35)",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -61,6 +82,9 @@ def main(argv: list[str] | None = None) -> int:
             max_size_mb=args.max_size_mb,
             dpi=args.dpi,
             grayscale=not args.keep_color,
+            strategy=args.strategy,
+            raster_dpi=args.raster_dpi,
+            jpeg_quality=args.jpeg_quality,
         )
     except PdfPrepError as exc:
         print(f"error: {exc}", file=sys.stderr)
