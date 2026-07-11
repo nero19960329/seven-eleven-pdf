@@ -125,26 +125,42 @@ def write_images_as_pdf(
     jpeg_quality: int,
     grayscale: bool,
     paper_size: str,
+    layout: str,
 ) -> None:
-    page_width, page_height = paper_size_points(paper_size)
+    page_width, page_height = page_size_for_layout(paper_size, layout)
+    columns, rows = grid_for_layout(layout)
+    per_sheet = columns * rows
+    slot_width = page_width / columns
+    slot_height = page_height / rows
+    margin = min(page_width, page_height) * 0.015
+
     pdf = canvas.Canvas(str(output_path), pagesize=(page_width, page_height))
-    for image_path in images:
-        with Image.open(image_path) as image:
-            image_width, image_height = image.size
-        scale = min(page_width / image_width, page_height / image_height)
-        draw_width = image_width * scale
-        draw_height = image_height * scale
-        x = (page_width - draw_width) / 2
-        y = (page_height - draw_height) / 2
-        pdf.drawImage(
-            str(image_path),
-            x,
-            y,
-            width=draw_width,
-            height=draw_height,
-            preserveAspectRatio=True,
-            mask="auto",
-        )
+    for sheet_start in range(0, len(images), per_sheet):
+        sheet_images = images[sheet_start : sheet_start + per_sheet]
+        for slot_index, image_path in enumerate(sheet_images):
+            column = slot_index % columns
+            row = slot_index // columns
+            slot_x = column * slot_width
+            slot_y = page_height - ((row + 1) * slot_height)
+            inner_width = slot_width - (2 * margin)
+            inner_height = slot_height - (2 * margin)
+
+            with Image.open(image_path) as image:
+                image_width, image_height = image.size
+            scale = min(inner_width / image_width, inner_height / image_height)
+            draw_width = image_width * scale
+            draw_height = image_height * scale
+            x = slot_x + margin + ((inner_width - draw_width) / 2)
+            y = slot_y + margin + ((inner_height - draw_height) / 2)
+            pdf.drawImage(
+                str(image_path),
+                x,
+                y,
+                width=draw_width,
+                height=draw_height,
+                preserveAspectRatio=True,
+                mask="auto",
+            )
         pdf.showPage()
     pdf.save()
 
@@ -152,6 +168,21 @@ def write_images_as_pdf(
 def paper_size_points(name: str) -> tuple[float, float]:
     width_mm, height_mm = PAPER_SIZES_MM[name]
     return width_mm * POINTS_PER_MM, height_mm * POINTS_PER_MM
+
+
+def page_size_for_layout(paper_size: str, layout: str) -> tuple[float, float]:
+    width, height = paper_size_points(paper_size)
+    if layout == "landscape-2up":
+        return height, width
+    return width, height
+
+
+def grid_for_layout(layout: str) -> tuple[int, int]:
+    if layout == "landscape-2up":
+        return 2, 1
+    if layout == "portrait-4up":
+        return 2, 2
+    return 1, 1
 
 
 def _page_number(path: Path) -> int:

@@ -114,6 +114,18 @@ Choose a different supported paper size:
 seven-eleven-pdf document.pdf --strategy raster --paper-size a3
 ```
 
+Put two source pages on each landscape A4 output sheet:
+
+```sh
+seven-eleven-pdf document.pdf --strategy raster --paper-size a4 --layout landscape-2up
+```
+
+Put four source pages on each portrait A4 output sheet:
+
+```sh
+seven-eleven-pdf document.pdf --strategy raster --paper-size a4 --layout portrait-4up
+```
+
 ## Development
 
 ```sh

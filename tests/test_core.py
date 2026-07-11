@@ -68,3 +68,9 @@ def test_raster_option_validation(tmp_path: Path) -> None:
 
     with pytest.raises(PdfPrepError, match="--paper-size"):
         prepare_for_print(pdf_file, strategy="raster", paper_size="letter")
+
+    with pytest.raises(PdfPrepError, match="--layout"):
+        prepare_for_print(pdf_file, strategy="raster", layout="booklet")
+
+    with pytest.raises(PdfPrepError, match="--layout"):
+        prepare_for_print(pdf_file, strategy="compress", layout="landscape-2up")

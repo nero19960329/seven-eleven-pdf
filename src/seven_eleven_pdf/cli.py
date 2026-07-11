@@ -70,6 +70,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output paper size used with --strategy raster (default: a4)",
     )
     parser.add_argument(
+        "--layout",
+        choices=["single", "landscape-2up", "portrait-4up"],
+        default="single",
+        help="Raster page layout: one page per sheet, two-up landscape, or four-up portrait",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -92,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
             raster_dpi=args.raster_dpi,
             jpeg_quality=args.jpeg_quality,
             paper_size=args.paper_size,
+            layout=args.layout,
         )
     except PdfPrepError as exc:
         print(f"error: {exc}", file=sys.stderr)
