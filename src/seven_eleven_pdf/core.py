@@ -103,10 +103,17 @@ def prepare_for_print(
         raise PdfPrepError("--jpeg-quality must be between 1 and 95")
     if paper_size.lower() not in {"a2", "a3", "a4", "a5", "a6", "a7"}:
         raise PdfPrepError("--paper-size must be one of: a2, a3, a4, a5, a6, a7")
-    allowed_layouts = {"single", "landscape-2up", "landscape-4up", "portrait-4up"}
+    allowed_layouts = {
+        "single",
+        "landscape-2up",
+        "landscape-4up",
+        "landscape-8up",
+        "portrait-4up",
+    }
     if layout not in allowed_layouts:
         raise PdfPrepError(
-            "--layout must be one of: single, landscape-2up, landscape-4up, portrait-4up"
+            "--layout must be one of: single, landscape-2up, landscape-4up, "
+            "landscape-8up, portrait-4up"
         )
     if strategy != "raster" and layout != "single":
         raise PdfPrepError("--layout requires --strategy raster")

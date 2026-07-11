@@ -126,6 +126,12 @@ Put four source pages on each landscape A3 output sheet:
 seven-eleven-pdf document.pdf --strategy raster --paper-size a3 --layout landscape-4up
 ```
 
+Put eight source pages on each landscape A3 output sheet without stretching:
+
+```sh
+seven-eleven-pdf document.pdf --strategy raster --paper-size a3 --layout landscape-8up
+```
+
 Force each source page to fill its layout slot, even if that changes the aspect ratio:
 
 ```sh

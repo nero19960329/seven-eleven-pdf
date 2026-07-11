@@ -91,3 +91,10 @@ def test_landscape_4up_uses_landscape_page_and_4_by_1_grid() -> None:
 
     assert width > height
     assert grid_for_layout("landscape-4up") == (4, 1)
+
+
+def test_landscape_8up_uses_landscape_page_and_4_by_2_grid() -> None:
+    width, height = page_size_for_layout("a3", "landscape-8up")
+
+    assert width > height
+    assert grid_for_layout("landscape-8up") == (4, 2)

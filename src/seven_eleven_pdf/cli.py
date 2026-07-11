@@ -71,11 +71,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--layout",
-        choices=["single", "landscape-2up", "landscape-4up", "portrait-4up"],
+        choices=[
+            "single",
+            "landscape-2up",
+            "landscape-4up",
+            "landscape-8up",
+            "portrait-4up",
+        ],
         default="single",
-        help=(
-            "Raster page layout: one page per sheet, landscape two-up/four-up, or portrait four-up"
-        ),
+        help=("Raster page layout: one page per sheet, landscape n-up, or portrait four-up"),
     )
     parser.add_argument(
         "--fit",

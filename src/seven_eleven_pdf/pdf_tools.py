@@ -178,7 +178,7 @@ def paper_size_points(name: str) -> tuple[float, float]:
 
 def page_size_for_layout(paper_size: str, layout: str) -> tuple[float, float]:
     width, height = paper_size_points(paper_size)
-    if layout in {"landscape-2up", "landscape-4up"}:
+    if layout in {"landscape-2up", "landscape-4up", "landscape-8up"}:
         return height, width
     return width, height
 
@@ -188,6 +188,8 @@ def grid_for_layout(layout: str) -> tuple[int, int]:
         return 2, 1
     if layout == "landscape-4up":
         return 4, 1
+    if layout == "landscape-8up":
+        return 4, 2
     if layout == "portrait-4up":
         return 2, 2
     return 1, 1
