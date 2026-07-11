@@ -77,8 +77,8 @@ def test_raster_option_validation(tmp_path: Path) -> None:
         prepare_for_print(pdf_file, strategy="compress", layout="landscape-2up")
 
 
-def test_landscape_4up_uses_landscape_page_and_2_by_2_grid() -> None:
+def test_landscape_4up_uses_landscape_page_and_4_by_1_grid() -> None:
     width, height = page_size_for_layout("a3", "landscape-4up")
 
     assert width > height
-    assert grid_for_layout("landscape-4up") == (2, 2)
+    assert grid_for_layout("landscape-4up") == (4, 1)

@@ -181,7 +181,7 @@ def grid_for_layout(layout: str) -> tuple[int, int]:
     if layout == "landscape-2up":
         return 2, 1
     if layout == "landscape-4up":
-        return 2, 2
+        return 4, 1
     if layout == "portrait-4up":
         return 2, 2
     return 1, 1
