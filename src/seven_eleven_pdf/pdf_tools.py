@@ -7,6 +7,17 @@ from pathlib import Path
 
 from PIL import Image
 from pypdf import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas
+
+POINTS_PER_MM = 72 / 25.4
+PAPER_SIZES_MM = {
+    "a2": (420, 594),
+    "a3": (297, 420),
+    "a4": (210, 297),
+    "a5": (148, 210),
+    "a6": (105, 148),
+    "a7": (74, 105),
+}
 
 
 class GhostscriptMissingError(RuntimeError):
@@ -113,22 +124,34 @@ def write_images_as_pdf(
     dpi: int,
     jpeg_quality: int,
     grayscale: bool,
+    paper_size: str,
 ) -> None:
-    mode = "L" if grayscale else "RGB"
-    opened = [Image.open(image).convert(mode) for image in images]
-    try:
-        first, rest = opened[0], opened[1:]
-        first.save(
-            output_path,
-            "PDF",
-            save_all=True,
-            append_images=rest,
-            resolution=dpi,
-            quality=jpeg_quality,
+    page_width, page_height = paper_size_points(paper_size)
+    pdf = canvas.Canvas(str(output_path), pagesize=(page_width, page_height))
+    for image_path in images:
+        with Image.open(image_path) as image:
+            image_width, image_height = image.size
+        scale = min(page_width / image_width, page_height / image_height)
+        draw_width = image_width * scale
+        draw_height = image_height * scale
+        x = (page_width - draw_width) / 2
+        y = (page_height - draw_height) / 2
+        pdf.drawImage(
+            str(image_path),
+            x,
+            y,
+            width=draw_width,
+            height=draw_height,
+            preserveAspectRatio=True,
+            mask="auto",
         )
-    finally:
-        for image in opened:
-            image.close()
+        pdf.showPage()
+    pdf.save()
+
+
+def paper_size_points(name: str) -> tuple[float, float]:
+    width_mm, height_mm = PAPER_SIZES_MM[name]
+    return width_mm * POINTS_PER_MM, height_mm * POINTS_PER_MM
 
 
 def _page_number(path: Path) -> int:

@@ -65,3 +65,6 @@ def test_raster_option_validation(tmp_path: Path) -> None:
 
     with pytest.raises(PdfPrepError, match="--jpeg-quality"):
         prepare_for_print(pdf_file, strategy="raster", jpeg_quality=0)
+
+    with pytest.raises(PdfPrepError, match="--paper-size"):
+        prepare_for_print(pdf_file, strategy="raster", paper_size="letter")

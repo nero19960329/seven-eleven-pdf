@@ -25,9 +25,9 @@ rasterization. Rasterizing every page can shrink difficult files, but it often
 damages text sharpness and makes searchable PDFs worse.
 
 For files that need to be smaller and can tolerate blur, use `--strategy raster`.
-This renders every page to a grayscale JPEG and rebuilds the PDF before splitting
-it. It is useful for A4 print handouts where upload size matters more than text
-searchability.
+This renders every page to a grayscale JPEG, places it on a real output paper
+size, and rebuilds the PDF before splitting it. It is useful for A4 print
+handouts where upload size matters more than text searchability.
 
 ## Requirements
 
@@ -106,6 +106,12 @@ Make the raster output smaller and blurrier:
 
 ```sh
 seven-eleven-pdf document.pdf --strategy raster --raster-dpi 60 --jpeg-quality 28
+```
+
+Choose a different supported paper size:
+
+```sh
+seven-eleven-pdf document.pdf --strategy raster --paper-size a3
 ```
 
 ## Development

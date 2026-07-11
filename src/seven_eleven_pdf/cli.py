@@ -64,6 +64,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="JPEG quality used with --strategy raster, 1-95 (default: 35)",
     )
     parser.add_argument(
+        "--paper-size",
+        choices=["a2", "a3", "a4", "a5", "a6", "a7"],
+        default="a4",
+        help="Output paper size used with --strategy raster (default: a4)",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -85,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
             strategy=args.strategy,
             raster_dpi=args.raster_dpi,
             jpeg_quality=args.jpeg_quality,
+            paper_size=args.paper_size,
         )
     except PdfPrepError as exc:
         print(f"error: {exc}", file=sys.stderr)

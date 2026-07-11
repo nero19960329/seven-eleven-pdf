@@ -24,6 +24,7 @@ classifiers = [
 dependencies = [
     "pillow>=11.0.0",
     "pypdf>=6.0.0",
+    "reportlab>=4.0.0",
 ]
 
 [project.scripts]

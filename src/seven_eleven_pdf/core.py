@@ -83,6 +83,7 @@ def prepare_for_print(
     strategy: str = "compress",
     raster_dpi: int = 72,
     jpeg_quality: int = 35,
+    paper_size: str = "a4",
 ) -> PrepResult:
     input_path = input_path.expanduser().resolve()
     if not input_path.is_file():
@@ -97,6 +98,8 @@ def prepare_for_print(
         raise PdfPrepError("--raster-dpi must be greater than 0")
     if not 1 <= jpeg_quality <= 95:
         raise PdfPrepError("--jpeg-quality must be between 1 and 95")
+    if paper_size.lower() not in {"a2", "a3", "a4", "a5", "a6", "a7"}:
+        raise PdfPrepError("--paper-size must be one of: a2, a3, a4, a5, a6, a7")
 
     max_bytes = max_bytes_from_mb(max_size_mb)
     output_dir = (
@@ -116,6 +119,7 @@ def prepare_for_print(
             strategy=strategy,
             raster_dpi=raster_dpi,
             jpeg_quality=jpeg_quality,
+            paper_size=paper_size.lower(),
         )
     except GhostscriptMissingError as exc:
         raise PdfPrepError(
@@ -138,6 +142,7 @@ def _prepare_with_temp_files(
     strategy: str,
     raster_dpi: int,
     jpeg_quality: int,
+    paper_size: str,
 ) -> PrepResult:
     with tempfile.TemporaryDirectory(prefix="seven-eleven-pdf-") as temp_name:
         temp_dir = Path(temp_name)
@@ -150,6 +155,7 @@ def _prepare_with_temp_files(
                 grayscale=grayscale,
                 raster_dpi=raster_dpi,
                 jpeg_quality=jpeg_quality,
+                paper_size=paper_size,
             )
 
         compressed = temp_dir / "compressed.pdf"
@@ -198,6 +204,7 @@ def _prepare_raster(
     grayscale: bool,
     raster_dpi: int,
     jpeg_quality: int,
+    paper_size: str,
 ) -> PrepResult:
     pages = rasterize_pdf(
         input_path=input_path,
@@ -215,6 +222,7 @@ def _prepare_raster(
             dpi=raster_dpi,
             jpeg_quality=jpeg_quality,
             grayscale=grayscale,
+            paper_size=paper_size,
         )
         return candidate.stat().st_size
 
@@ -227,6 +235,7 @@ def _prepare_raster(
             dpi=raster_dpi,
             jpeg_quality=jpeg_quality,
             grayscale=grayscale,
+            paper_size=paper_size,
         )
         files = (output,)
     else:
@@ -240,6 +249,7 @@ def _prepare_raster(
                 dpi=raster_dpi,
                 jpeg_quality=jpeg_quality,
                 grayscale=grayscale,
+                paper_size=paper_size,
             )
             rendered.append(output)
         files = tuple(rendered)
@@ -249,6 +259,6 @@ def _prepare_raster(
         input_path=input_path,
         output_dir=output_dir,
         files=files,
-        strategy=f"{color}-raster-{raster_dpi}dpi-q{jpeg_quality}",
+        strategy=f"{color}-raster-{paper_size}-{raster_dpi}dpi-q{jpeg_quality}",
         max_bytes=max_bytes,
     )
