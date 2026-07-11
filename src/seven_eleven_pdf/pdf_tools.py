@@ -126,13 +126,15 @@ def write_images_as_pdf(
     grayscale: bool,
     paper_size: str,
     layout: str,
+    fit: str,
+    margin_mm: float,
 ) -> None:
     page_width, page_height = page_size_for_layout(paper_size, layout)
     columns, rows = grid_for_layout(layout)
     per_sheet = columns * rows
     slot_width = page_width / columns
     slot_height = page_height / rows
-    margin = min(page_width, page_height) * 0.015
+    margin = margin_mm * POINTS_PER_MM
 
     pdf = canvas.Canvas(str(output_path), pagesize=(page_width, page_height))
     for sheet_start in range(0, len(images), per_sheet):
@@ -147,9 +149,13 @@ def write_images_as_pdf(
 
             with Image.open(image_path) as image:
                 image_width, image_height = image.size
-            scale = min(inner_width / image_width, inner_height / image_height)
-            draw_width = image_width * scale
-            draw_height = image_height * scale
+            if fit == "stretch":
+                draw_width = inner_width
+                draw_height = inner_height
+            else:
+                scale = min(inner_width / image_width, inner_height / image_height)
+                draw_width = image_width * scale
+                draw_height = image_height * scale
             x = slot_x + margin + ((inner_width - draw_width) / 2)
             y = slot_y + margin + ((inner_height - draw_height) / 2)
             pdf.drawImage(
@@ -158,7 +164,7 @@ def write_images_as_pdf(
                 y,
                 width=draw_width,
                 height=draw_height,
-                preserveAspectRatio=True,
+                preserveAspectRatio=fit != "stretch",
                 mask="auto",
             )
         pdf.showPage()

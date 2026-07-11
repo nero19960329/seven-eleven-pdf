@@ -78,6 +78,18 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--fit",
+        choices=["contain", "stretch"],
+        default="contain",
+        help="How raster pages fit inside each layout slot (default: contain)",
+    )
+    parser.add_argument(
+        "--margin-mm",
+        type=float,
+        default=4.0,
+        help="Margin around each raster layout slot in millimeters (default: 4)",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
@@ -101,6 +113,8 @@ def main(argv: list[str] | None = None) -> int:
             jpeg_quality=args.jpeg_quality,
             paper_size=args.paper_size,
             layout=args.layout,
+            fit=args.fit,
+            margin_mm=args.margin_mm,
         )
     except PdfPrepError as exc:
         print(f"error: {exc}", file=sys.stderr)

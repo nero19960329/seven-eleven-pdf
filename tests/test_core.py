@@ -76,6 +76,15 @@ def test_raster_option_validation(tmp_path: Path) -> None:
     with pytest.raises(PdfPrepError, match="--layout"):
         prepare_for_print(pdf_file, strategy="compress", layout="landscape-2up")
 
+    with pytest.raises(PdfPrepError, match="--fit"):
+        prepare_for_print(pdf_file, strategy="raster", fit="cover")
+
+    with pytest.raises(PdfPrepError, match="--fit"):
+        prepare_for_print(pdf_file, strategy="compress", fit="stretch")
+
+    with pytest.raises(PdfPrepError, match="--margin-mm"):
+        prepare_for_print(pdf_file, strategy="raster", margin_mm=-1)
+
 
 def test_landscape_4up_uses_landscape_page_and_4_by_1_grid() -> None:
     width, height = page_size_for_layout("a3", "landscape-4up")

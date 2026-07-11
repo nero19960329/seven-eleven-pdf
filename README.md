@@ -126,6 +126,18 @@ Put four source pages on each landscape A3 output sheet:
 seven-eleven-pdf document.pdf --strategy raster --paper-size a3 --layout landscape-4up
 ```
 
+Force each source page to fill its layout slot, even if that changes the aspect ratio:
+
+```sh
+seven-eleven-pdf document.pdf --strategy raster --paper-size a3 --layout landscape-4up --fit stretch
+```
+
+Remove layout-slot margins for maximum paper usage:
+
+```sh
+seven-eleven-pdf document.pdf --strategy raster --paper-size a3 --layout landscape-4up --fit stretch --margin-mm 0
+```
+
 Put four source pages on each portrait A4 output sheet:
 
 ```sh

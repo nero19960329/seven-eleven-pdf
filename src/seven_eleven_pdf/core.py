@@ -85,6 +85,8 @@ def prepare_for_print(
     jpeg_quality: int = 35,
     paper_size: str = "a4",
     layout: str = "single",
+    fit: str = "contain",
+    margin_mm: float = 4.0,
 ) -> PrepResult:
     input_path = input_path.expanduser().resolve()
     if not input_path.is_file():
@@ -108,6 +110,12 @@ def prepare_for_print(
         )
     if strategy != "raster" and layout != "single":
         raise PdfPrepError("--layout requires --strategy raster")
+    if fit not in {"contain", "stretch"}:
+        raise PdfPrepError("--fit must be one of: contain, stretch")
+    if strategy != "raster" and fit != "contain":
+        raise PdfPrepError("--fit requires --strategy raster")
+    if margin_mm < 0:
+        raise PdfPrepError("--margin-mm must be greater than or equal to 0")
 
     max_bytes = max_bytes_from_mb(max_size_mb)
     output_dir = (
@@ -129,6 +137,8 @@ def prepare_for_print(
             jpeg_quality=jpeg_quality,
             paper_size=paper_size.lower(),
             layout=layout,
+            fit=fit,
+            margin_mm=margin_mm,
         )
     except GhostscriptMissingError as exc:
         raise PdfPrepError(
@@ -153,6 +163,8 @@ def _prepare_with_temp_files(
     jpeg_quality: int,
     paper_size: str,
     layout: str,
+    fit: str,
+    margin_mm: float,
 ) -> PrepResult:
     with tempfile.TemporaryDirectory(prefix="seven-eleven-pdf-") as temp_name:
         temp_dir = Path(temp_name)
@@ -167,6 +179,8 @@ def _prepare_with_temp_files(
                 jpeg_quality=jpeg_quality,
                 paper_size=paper_size,
                 layout=layout,
+                fit=fit,
+                margin_mm=margin_mm,
             )
 
         compressed = temp_dir / "compressed.pdf"
@@ -217,6 +231,8 @@ def _prepare_raster(
     jpeg_quality: int,
     paper_size: str,
     layout: str,
+    fit: str,
+    margin_mm: float,
 ) -> PrepResult:
     pages = rasterize_pdf(
         input_path=input_path,
@@ -236,6 +252,8 @@ def _prepare_raster(
             grayscale=grayscale,
             paper_size=paper_size,
             layout=layout,
+            fit=fit,
+            margin_mm=margin_mm,
         )
         return candidate.stat().st_size
 
@@ -250,6 +268,8 @@ def _prepare_raster(
             grayscale=grayscale,
             paper_size=paper_size,
             layout=layout,
+            fit=fit,
+            margin_mm=margin_mm,
         )
         files = (output,)
     else:
@@ -265,6 +285,8 @@ def _prepare_raster(
                 grayscale=grayscale,
                 paper_size=paper_size,
                 layout=layout,
+                fit=fit,
+                margin_mm=margin_mm,
             )
             rendered.append(output)
         files = tuple(rendered)
@@ -274,6 +296,6 @@ def _prepare_raster(
         input_path=input_path,
         output_dir=output_dir,
         files=files,
-        strategy=f"{color}-raster-{paper_size}-{layout}-{raster_dpi}dpi-q{jpeg_quality}",
+        strategy=f"{color}-raster-{paper_size}-{layout}-{fit}-{raster_dpi}dpi-q{jpeg_quality}",
         max_bytes=max_bytes,
     )
