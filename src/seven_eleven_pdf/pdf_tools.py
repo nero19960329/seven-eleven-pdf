@@ -74,6 +74,16 @@ def count_pages(input_path: Path) -> int:
     return len(PdfReader(input_path).pages)
 
 
+def merge_pdfs(input_paths: tuple[Path, ...], output_path: Path) -> None:
+    writer = PdfWriter()
+    for input_path in input_paths:
+        reader = PdfReader(input_path)
+        for page in reader.pages:
+            writer.add_page(page)
+    with output_path.open("wb") as file:
+        writer.write(file)
+
+
 def write_page_range(input_path: Path, output_path: Path, start: int, end: int) -> None:
     reader = PdfReader(input_path)
     writer = PdfWriter()

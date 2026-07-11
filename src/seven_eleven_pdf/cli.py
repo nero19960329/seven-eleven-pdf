@@ -17,7 +17,7 @@ def build_parser() -> argparse.ArgumentParser:
             "10 MB."
         ),
     )
-    parser.add_argument("input", type=Path, help="Input .pdf file")
+    parser.add_argument("input", type=Path, nargs="+", help="Input .pdf file(s)")
     parser.add_argument(
         "-o",
         "--output-dir",
@@ -107,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         result = prepare_for_print(
-            input_path=args.input,
+            input_paths=args.input,
             output_dir=args.output_dir,
             max_size_mb=args.max_size_mb,
             dpi=args.dpi,

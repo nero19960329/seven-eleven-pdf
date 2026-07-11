@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -11,6 +11,7 @@ from seven_eleven_pdf.pdf_tools import (
     PopplerMissingError,
     compress_pdf,
     count_pages,
+    merge_pdfs,
     rasterize_pdf,
     write_images_as_pdf,
     write_page_range,
@@ -25,7 +26,7 @@ class PdfPrepError(Exception):
 
 @dataclass(frozen=True)
 class PrepResult:
-    input_path: Path
+    input_paths: tuple[Path, ...]
     output_dir: Path
     files: tuple[Path, ...]
     strategy: str
@@ -75,7 +76,7 @@ def page_ranges_for_limit(
 
 
 def prepare_for_print(
-    input_path: Path,
+    input_paths: Path | Sequence[Path],
     output_dir: Path | None = None,
     max_size_mb: float = 10.0,
     dpi: int = 150,
@@ -88,11 +89,7 @@ def prepare_for_print(
     fit: str = "contain",
     margin_mm: float = 4.0,
 ) -> PrepResult:
-    input_path = input_path.expanduser().resolve()
-    if not input_path.is_file():
-        raise PdfPrepError(f"input file does not exist: {input_path}")
-    if input_path.suffix.lower() != ".pdf":
-        raise PdfPrepError("input file must be a .pdf")
+    resolved_inputs = _resolve_input_paths(input_paths)
     if dpi <= 0:
         raise PdfPrepError("--dpi must be greater than 0")
     if strategy not in {"compress", "raster"}:
@@ -128,13 +125,13 @@ def prepare_for_print(
     output_dir = (
         output_dir.expanduser().resolve()
         if output_dir is not None
-        else input_path.with_name(f"{input_path.stem}_print")
+        else resolved_inputs[0].with_name(f"{_output_stem(resolved_inputs)}_print")
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         return _prepare_with_temp_files(
-            input_path=input_path,
+            input_paths=resolved_inputs,
             output_dir=output_dir,
             max_bytes=max_bytes,
             dpi=dpi,
@@ -159,8 +156,28 @@ def prepare_for_print(
         ) from exc
 
 
+def _resolve_input_paths(input_paths: Path | Sequence[Path]) -> tuple[Path, ...]:
+    paths = (input_paths,) if isinstance(input_paths, Path) else tuple(input_paths)
+    if not paths:
+        raise PdfPrepError("at least one input PDF is required")
+
+    resolved = tuple(path.expanduser().resolve() for path in paths)
+    for path in resolved:
+        if not path.is_file():
+            raise PdfPrepError(f"input file does not exist: {path}")
+        if path.suffix.lower() != ".pdf":
+            raise PdfPrepError("input file must be a .pdf")
+    return resolved
+
+
+def _output_stem(input_paths: tuple[Path, ...]) -> str:
+    if len(input_paths) == 1:
+        return input_paths[0].stem
+    return "combined"
+
+
 def _prepare_with_temp_files(
-    input_path: Path,
+    input_paths: tuple[Path, ...],
     output_dir: Path,
     max_bytes: int,
     dpi: int,
@@ -177,7 +194,7 @@ def _prepare_with_temp_files(
         temp_dir = Path(temp_name)
         if strategy == "raster":
             return _prepare_raster(
-                input_path=input_path,
+                input_paths=input_paths,
                 output_dir=output_dir,
                 max_bytes=max_bytes,
                 temp_dir=temp_dir,
@@ -190,14 +207,16 @@ def _prepare_with_temp_files(
                 margin_mm=margin_mm,
             )
 
+        source = _merged_source(input_paths, temp_dir)
         compressed = temp_dir / "compressed.pdf"
-        compress_pdf(input_path, compressed, dpi=dpi, grayscale=grayscale)
+        compress_pdf(source, compressed, dpi=dpi, grayscale=grayscale)
 
-        single_output = output_dir / f"{input_path.stem}_print.pdf"
+        stem = _output_stem(input_paths)
+        single_output = output_dir / f"{stem}_print.pdf"
         if compressed.stat().st_size <= max_bytes:
             shutil.copy2(compressed, single_output)
             return PrepResult(
-                input_path=input_path,
+                input_paths=input_paths,
                 output_dir=output_dir,
                 files=(single_output,),
                 strategy="grayscale-compress" if grayscale else "color-compress",
@@ -215,12 +234,12 @@ def _prepare_with_temp_files(
         width = len(str(len(ranges)))
         files: list[Path] = []
         for index, (start, end) in enumerate(ranges, start=1):
-            output = output_dir / f"{input_path.stem}_part-{index:0{width}d}.pdf"
+            output = output_dir / f"{stem}_part-{index:0{width}d}.pdf"
             write_page_range(compressed, output, start, end)
             files.append(output)
 
     return PrepResult(
-        input_path=input_path,
+        input_paths=input_paths,
         output_dir=output_dir,
         files=tuple(files),
         strategy="grayscale-compress-and-split" if grayscale else "color-compress-and-split",
@@ -228,8 +247,16 @@ def _prepare_with_temp_files(
     )
 
 
+def _merged_source(input_paths: tuple[Path, ...], temp_dir: Path) -> Path:
+    if len(input_paths) == 1:
+        return input_paths[0]
+    merged = temp_dir / "merged.pdf"
+    merge_pdfs(input_paths, merged)
+    return merged
+
+
 def _prepare_raster(
-    input_path: Path,
+    input_paths: tuple[Path, ...],
     output_dir: Path,
     max_bytes: int,
     temp_dir: Path,
@@ -241,13 +268,17 @@ def _prepare_raster(
     fit: str,
     margin_mm: float,
 ) -> PrepResult:
-    pages = rasterize_pdf(
-        input_path=input_path,
-        output_dir=temp_dir / "pages",
-        dpi=raster_dpi,
-        grayscale=grayscale,
-        jpeg_quality=jpeg_quality,
-    )
+    pages: list[Path] = []
+    for index, input_path in enumerate(input_paths, start=1):
+        pages.extend(
+            rasterize_pdf(
+                input_path=input_path,
+                output_dir=temp_dir / f"pages-{index}",
+                dpi=raster_dpi,
+                grayscale=grayscale,
+                jpeg_quality=jpeg_quality,
+            )
+        )
 
     def render_range_size(start: int, end: int) -> int:
         candidate = temp_dir / f"raster-candidate-{start + 1}-{end + 1}.pdf"
@@ -265,8 +296,9 @@ def _prepare_raster(
         return candidate.stat().st_size
 
     ranges = page_ranges_for_limit(len(pages), max_bytes, render_range_size)
+    stem = _output_stem(input_paths)
     if len(ranges) == 1:
-        output = output_dir / f"{input_path.stem}_raster.pdf"
+        output = output_dir / f"{stem}_raster.pdf"
         write_images_as_pdf(
             pages,
             output,
@@ -283,7 +315,7 @@ def _prepare_raster(
         width = len(str(len(ranges)))
         rendered: list[Path] = []
         for index, (start, end) in enumerate(ranges, start=1):
-            output = output_dir / f"{input_path.stem}_raster_part-{index:0{width}d}.pdf"
+            output = output_dir / f"{stem}_raster_part-{index:0{width}d}.pdf"
             write_images_as_pdf(
                 pages[start : end + 1],
                 output,
@@ -300,7 +332,7 @@ def _prepare_raster(
 
     color = "grayscale" if grayscale else "color"
     return PrepResult(
-        input_path=input_path,
+        input_paths=input_paths,
         output_dir=output_dir,
         files=files,
         strategy=f"{color}-raster-{paper_size}-{layout}-{fit}-{raster_dpi}dpi-q{jpeg_quality}",

@@ -72,6 +72,12 @@ Prepare `document.pdf` with the default grayscale, 10 MB limit:
 seven-eleven-pdf document.pdf
 ```
 
+Prepare multiple PDFs as one combined output, in the order given:
+
+```sh
+seven-eleven-pdf chapter-1.pdf chapter-2.pdf --strategy raster --paper-size a3
+```
+
 Write outputs to a specific directory:
 
 ```sh

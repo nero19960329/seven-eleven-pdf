@@ -52,6 +52,16 @@ def test_input_suffix_validation(tmp_path: Path) -> None:
         prepare_for_print(text_file)
 
 
+def test_multiple_input_validation_rejects_missing_file(tmp_path: Path) -> None:
+    from seven_eleven_pdf.core import prepare_for_print
+
+    pdf_file = tmp_path / "sample.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4\n")
+
+    with pytest.raises(PdfPrepError, match="does not exist"):
+        prepare_for_print([pdf_file, tmp_path / "missing.pdf"])
+
+
 def test_raster_option_validation(tmp_path: Path) -> None:
     from seven_eleven_pdf.core import prepare_for_print
 
