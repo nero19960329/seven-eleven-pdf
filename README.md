@@ -120,6 +120,12 @@ Put two source pages on each landscape A4 output sheet:
 seven-eleven-pdf document.pdf --strategy raster --paper-size a4 --layout landscape-2up
 ```
 
+Put four source pages on each landscape A3 output sheet:
+
+```sh
+seven-eleven-pdf document.pdf --strategy raster --paper-size a3 --layout landscape-4up
+```
+
 Put four source pages on each portrait A4 output sheet:
 
 ```sh

@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from seven_eleven_pdf.core import PdfPrepError, max_bytes_from_mb, page_ranges_for_limit
+from seven_eleven_pdf.pdf_tools import grid_for_layout, page_size_for_layout
 
 
 def test_max_bytes_from_mb_uses_decimal_megabytes() -> None:
@@ -74,3 +75,10 @@ def test_raster_option_validation(tmp_path: Path) -> None:
 
     with pytest.raises(PdfPrepError, match="--layout"):
         prepare_for_print(pdf_file, strategy="compress", layout="landscape-2up")
+
+
+def test_landscape_4up_uses_landscape_page_and_2_by_2_grid() -> None:
+    width, height = page_size_for_layout("a3", "landscape-4up")
+
+    assert width > height
+    assert grid_for_layout("landscape-4up") == (2, 2)
