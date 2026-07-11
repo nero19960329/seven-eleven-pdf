@@ -269,16 +269,20 @@ def _prepare_raster(
     margin_mm: float,
 ) -> PrepResult:
     pages: list[Path] = []
+    unique_pages_dir = temp_dir / "unique-pages"
+    unique_pages_dir.mkdir()
     for index, input_path in enumerate(input_paths, start=1):
-        pages.extend(
-            rasterize_pdf(
-                input_path=input_path,
-                output_dir=temp_dir / f"pages-{index}",
-                dpi=raster_dpi,
-                grayscale=grayscale,
-                jpeg_quality=jpeg_quality,
-            )
+        rendered_pages = rasterize_pdf(
+            input_path=input_path,
+            output_dir=temp_dir / f"pages-{index}",
+            dpi=raster_dpi,
+            grayscale=grayscale,
+            jpeg_quality=jpeg_quality,
         )
+        for rendered_page in rendered_pages:
+            unique_page = unique_pages_dir / f"page-{len(pages) + 1:05d}.jpg"
+            shutil.copy2(rendered_page, unique_page)
+            pages.append(unique_page)
 
     def render_range_size(start: int, end: int) -> int:
         candidate = temp_dir / f"raster-candidate-{start + 1}-{end + 1}.pdf"
